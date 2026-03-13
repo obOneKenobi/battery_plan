@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, type SetStateAction } from "react";
 import { DEVICES, type DeviceId } from "@/lib/devices";
 import {
     type PlacedDevice,
@@ -19,18 +19,18 @@ const COLORS: Record<DeviceId, string> = {
     transformer: "#f59e0b",
 };
 
-
 interface SiteLayoutProps {
     quantities: Record<DeviceId, number>;
+    placed: PlacedDevice[];
+    onPlacedChange: (action: SetStateAction<PlacedDevice[]>) => void;
     onDecrementQuantity: (deviceId: DeviceId) => void;
 }
 
-export default function SiteLayout({ quantities, onDecrementQuantity }: SiteLayoutProps) {
+export default function SiteLayout({ quantities, placed, onPlacedChange, onDecrementQuantity }: SiteLayoutProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(8);
     const [height, setHeight] = useState(60);
     const [showGrid, setShowGrid] = useState(true);
-    const [placed, setPlaced] = useState<PlacedDevice[]>([]);
     const dragRef = useRef<DragState | null>(null);
     const prevQuantitiesRef = useRef<Record<DeviceId, number>>(quantities);
 
@@ -48,13 +48,14 @@ export default function SiteLayout({ quantities, onDecrementQuantity }: SiteLayo
         const prev = prevQuantitiesRef.current;
         prevQuantitiesRef.current = quantities;
 
-        setPlaced((current) => {
+        onPlacedChange((current) => {
             let updated = current;
             for (const deviceId of Object.keys(quantities) as DeviceId[]) {
-                const added = (quantities[deviceId] ?? 0) - (prev[deviceId] ?? 0);
-                if (added <= 0) continue;
+                if ((quantities[deviceId] ?? 0) <= (prev[deviceId] ?? 0)) continue;
                 const device = DEVICES.find((d) => d.id === deviceId)!;
-                for (let i = 0; i < added; i++) {
+                const alreadyPlaced = updated.filter((p) => p.deviceId === deviceId).length;
+                const toAdd = (quantities[deviceId] ?? 0) - alreadyPlaced;
+                for (let i = 0; i < toAdd; i++) {
                     const { x, y } = findBestPosition(updated, 0, 0, device.width, device.depth, 100, height);
                     updated = [...updated, { instanceId: `${deviceId}-${Date.now()}-${i}`, deviceId, x, y, rotated: false }];
                 }
@@ -83,13 +84,13 @@ export default function SiteLayout({ quantities, onDecrementQuantity }: SiteLayo
         const { w, h } = getDeviceDimensions(p);
         const x = Math.max(0, Math.min(startX + (e.clientX - startPointerX) / scale, 100 - w));
         const y = Math.max(0, Math.min(startY + (e.clientY - startPointerY) / scale, height - h));
-        setPlaced((prev) => prev.map((item) => (item.instanceId === instanceId ? { ...item, x, y } : item)));
+        onPlacedChange((prev) => prev.map((item) => (item.instanceId === instanceId ? { ...item, x, y } : item)));
     }
 
     function endDrag(e: React.PointerEvent, instanceId: string) {
         (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
         dragRef.current = null;
-        setPlaced((prev) => {
+        onPlacedChange((prev) => {
             const p = prev.find((item) => item.instanceId === instanceId)!;
             const { w, h } = getDeviceDimensions(p);
             const { x, y } = findBestPosition(prev, p.x, p.y, w, h, 100, height, instanceId);
@@ -98,7 +99,7 @@ export default function SiteLayout({ quantities, onDecrementQuantity }: SiteLayo
     }
 
     function rotateDevice(instanceId: string) {
-        setPlaced((prev) =>
+        onPlacedChange((prev) =>
             prev.map((p) => {
                 if (p.instanceId !== instanceId) return p;
                 const device = DEVICES.find((d) => d.id === p.deviceId)!;
@@ -121,7 +122,7 @@ export default function SiteLayout({ quantities, onDecrementQuantity }: SiteLayo
         if (placedCount <= (quantities[p.deviceId] ?? 0)) {
             onDecrementQuantity(p.deviceId);
         }
-        setPlaced((prev) => prev.filter((item) => item.instanceId !== instanceId));
+        onPlacedChange((prev) => prev.filter((item) => item.instanceId !== instanceId));
     }
 
     return (

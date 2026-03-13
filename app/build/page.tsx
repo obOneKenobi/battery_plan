@@ -1,13 +1,37 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, type SetStateAction } from "react";
 import { DEVICES, type DeviceId } from "@/lib/devices";
+import { type PlacedDevice } from "@/lib/siteLayoutUtils";
 import SiteLayout from "@/components/SiteLayout";
 
+interface BuildState {
+  quantities: Record<DeviceId, number>;
+  placed: PlacedDevice[];
+}
+
+const DEFAULT_STATE: BuildState = {
+  quantities: Object.fromEntries(DEVICES.map((d) => [d.id, 0])) as Record<DeviceId, number>,
+  placed: [],
+};
+
 export default function BuildPage() {
-  const [quantities, setQuantities] = useState<Record<DeviceId, number>>(
-    Object.fromEntries(DEVICES.map((d) => [d.id, 0])) as Record<DeviceId, number>
-  );
+  const [state, setState] = useState<BuildState>(DEFAULT_STATE);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("build-state");
+      if (saved) setState(JSON.parse(saved));
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("build-state", JSON.stringify(state));
+  }, [state]);
+
+  const { quantities, placed } = state;
 
   const totalBudget = DEVICES.reduce(
     (sum, device) => sum + device.price * quantities[device.id],
@@ -23,7 +47,17 @@ export default function BuildPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   function setQuantity(id: DeviceId, value: number) {
-    setQuantities((prev) => ({ ...prev, [id]: Math.max(0, value) }));
+    setState((prev) => ({
+      ...prev,
+      quantities: { ...prev.quantities, [id]: Math.max(0, value) },
+    }));
+  }
+
+  function setPlaced(action: SetStateAction<PlacedDevice[]>) {
+    setState((prev) => ({
+      ...prev,
+      placed: typeof action === "function" ? action(prev.placed) : action,
+    }));
   }
 
   return (
@@ -125,7 +159,12 @@ export default function BuildPage() {
           {sidebarOpen ? "‹" : "›"}
         </button>
         <main className="flex-1 overflow-hidden">
-          <SiteLayout quantities={quantities} onDecrementQuantity={(id) => setQuantity(id, quantities[id] - 1)} />
+          <SiteLayout
+            quantities={quantities}
+            placed={placed}
+            onPlacedChange={setPlaced}
+            onDecrementQuantity={(id) => setQuantity(id, quantities[id] - 1)}
+          />
         </main>
       </div>
     </div>
