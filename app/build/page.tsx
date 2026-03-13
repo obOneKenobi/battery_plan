@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { DEVICES, type DeviceId } from "@/lib/devices";
+import SiteLayout from "@/components/SiteLayout";
 
 export default function BuildPage() {
   const [quantities, setQuantities] = useState<Record<DeviceId, number>>(
@@ -25,8 +26,8 @@ export default function BuildPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-zinc-50 font-sans dark:bg-black">
-      <aside className="flex w-72 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="flex h-screen bg-zinc-50 font-sans dark:bg-black">
+      <aside className="flex h-full w-72 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
         <div className="border-b border-zinc-200 px-5 py-5 dark:border-zinc-800">
           <h1 className="text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
             Build Your Plan
@@ -41,9 +42,14 @@ export default function BuildPage() {
             <div
               key={device.id}
               id={device.id}
+              draggable={quantities[device.id] > 0}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("deviceId", device.id);
+                e.dataTransfer.effectAllowed = "copy";
+              }}
               className={`px-5 py-4 ${
                 i < DEVICES.length - 1 ? "border-b border-zinc-100 dark:border-zinc-800/60" : ""
-              }`}
+              } ${quantities[device.id] > 0 ? "cursor-grab" : ""}`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col">
@@ -77,7 +83,7 @@ export default function BuildPage() {
 
               <div className="mt-2 flex items-center justify-between">
                 <span className="text-xs text-zinc-400 dark:text-zinc-500">
-                  {device.dimension} · {device.energyCost}
+                  {device.width}FT x {device.depth}FT · {device.energyCost}
                 </span>
                 <span className="text-xs font-medium text-zinc-600 dark:text-zinc-400">
                   ${device.price.toLocaleString()}
@@ -115,7 +121,8 @@ export default function BuildPage() {
         </div>
       </aside>
 
-      <main className="flex-1 p-10">
+      <main className="flex-1 overflow-hidden">
+        <SiteLayout quantities={quantities} />
       </main>
     </div>
   );
