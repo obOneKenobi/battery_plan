@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type SetStateAction } from "react";
+import { useState, useEffect, useRef, type SetStateAction } from "react";
 import { DEVICES, type DeviceId } from "@/lib/devices";
 import { type PlacedDevice } from "@/lib/siteLayoutUtils";
 import SiteLayout from "@/components/SiteLayout";
@@ -17,17 +17,20 @@ const DEFAULT_STATE: BuildState = {
 
 export default function BuildPage() {
   const [state, setState] = useState<BuildState>(DEFAULT_STATE);
+  const isFirstSaveRef = useRef(true);
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem("build-state");
       if (saved) setState(JSON.parse(saved));
-    } catch {
-      // ignore
-    }
+    } catch {}
   }, []);
 
   useEffect(() => {
+    if (isFirstSaveRef.current) {
+      isFirstSaveRef.current = false;
+      return;
+    }
     localStorage.setItem("build-state", JSON.stringify(state));
   }, [state]);
 
@@ -61,7 +64,7 @@ export default function BuildPage() {
   }
 
   return (
-    <div className="flex h-screen bg-zinc-50 font-sans dark:bg-black">
+    <div className="flex h-[calc(100vh-3rem)] bg-zinc-50 font-sans dark:bg-black">
       <aside className={`flex h-full shrink-0 flex-col border-r border-zinc-200 bg-white transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden ${sidebarOpen ? "w-72" : "w-0"}`}>
         <div className="border-b border-zinc-200 px-5 py-5 dark:border-zinc-800">
           <h1 className="text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
