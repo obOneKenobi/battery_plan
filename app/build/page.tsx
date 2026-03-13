@@ -20,6 +20,7 @@ export default function BuildPage() {
   );
 
   const hasSelection = Object.values(quantities).some((q) => q > 0);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   function setQuantity(id: DeviceId, value: number) {
     setQuantities((prev) => ({ ...prev, [id]: Math.max(0, value) }));
@@ -27,7 +28,7 @@ export default function BuildPage() {
 
   return (
     <div className="flex h-screen bg-zinc-50 font-sans dark:bg-black">
-      <aside className="flex h-full w-72 shrink-0 flex-col border-r border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden">
+      <aside className={`flex h-full shrink-0 flex-col border-r border-zinc-200 bg-white transition-all duration-300 dark:border-zinc-800 dark:bg-zinc-950 overflow-hidden ${sidebarOpen ? "w-72" : "w-0"}`}>
         <div className="border-b border-zinc-200 px-5 py-5 dark:border-zinc-800">
           <h1 className="text-lg font-semibold tracking-tight text-black dark:text-zinc-50">
             Build Your Plan
@@ -42,14 +43,9 @@ export default function BuildPage() {
             <div
               key={device.id}
               id={device.id}
-              draggable={quantities[device.id] > 0}
-              onDragStart={(e) => {
-                e.dataTransfer.setData("deviceId", device.id);
-                e.dataTransfer.effectAllowed = "copy";
-              }}
               className={`px-5 py-4 ${
                 i < DEVICES.length - 1 ? "border-b border-zinc-100 dark:border-zinc-800/60" : ""
-              } ${quantities[device.id] > 0 ? "cursor-grab" : ""}`}
+              }`}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex flex-col">
@@ -121,9 +117,17 @@ export default function BuildPage() {
         </div>
       </aside>
 
-      <main className="flex-1 overflow-hidden">
-        <SiteLayout quantities={quantities} />
-      </main>
+      <div className="relative flex flex-1 overflow-hidden">
+        <button
+          onClick={() => setSidebarOpen((v) => !v)}
+          className="absolute left-0 top-1/2 z-10 -translate-y-1/2 flex h-8 w-5 items-center justify-center rounded-r border border-l-0 border-zinc-200 bg-white text-xs text-zinc-400 hover:text-zinc-700 dark:border-zinc-800 dark:bg-zinc-950 dark:hover:text-zinc-200"
+        >
+          {sidebarOpen ? "‹" : "›"}
+        </button>
+        <main className="flex-1 overflow-hidden">
+          <SiteLayout quantities={quantities} onDecrementQuantity={(id) => setQuantity(id, quantities[id] - 1)} />
+        </main>
+      </div>
     </div>
   );
 }
