@@ -126,10 +126,24 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
         onPlacedChange((prev) => prev.filter((item) => item.instanceId !== instanceId));
     }
 
+    const minWidth = placed.length
+        ? Math.ceil(Math.max(...placed.map((p) => { const { w } = getDeviceDimensions(p); return p.x + w; })))
+        : 0;
+    const minDepth = placed.length
+        ? Math.ceil(Math.max(...placed.map((p) => { const { h } = getDeviceDimensions(p); return p.y + h; })))
+        : 0;
+
     return (
         <div className="flex h-full flex-col gap-5 p-8" style={{ minWidth: 500 }}>
             <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-black dark:text-zinc-50">Site Layout</h2>
+                <div className="flex items-center gap-3">
+                    <h2 className="text-lg font-semibold text-black dark:text-zinc-50">Site Layout</h2>
+                    {placed.length > 0 && (
+                        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                            Min. land: {minWidth}ft × {minDepth}ft
+                        </span>
+                    )}
+                </div>
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => setShowGrid((v) => !v)}
