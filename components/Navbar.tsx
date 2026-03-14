@@ -2,14 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
-const LINKS = [
+const PUBLIC_LINKS = [
     { href: "/", label: "Home" },
     { href: "/build", label: "Build" },
 ];
 
+const AUTH_LINKS = [
+    { href: "/plans", label: "My Plans" },
+];
+
 export default function Navbar() {
     const pathname = usePathname();
+    const { data: session } = useSession();
+
     return (
         <nav className="flex h-12 items-center gap-1 border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
             <Link
@@ -18,7 +25,7 @@ export default function Navbar() {
             >
                 Battery Plan
             </Link>
-            {LINKS.map(({ href, label }) => (
+            {[...PUBLIC_LINKS, ...(session ? AUTH_LINKS : [])].map(({ href, label }) => (
                 <Link
                     key={href}
                     href={href}
@@ -31,6 +38,28 @@ export default function Navbar() {
                     {label}
                 </Link>
             ))}
+            <div className="ml-auto flex items-center gap-3">
+                {session ? (
+                    <>
+                        <span className="text-sm text-zinc-500 dark:text-zinc-400">
+                            {session.user?.name}
+                        </span>
+                        <button
+                            onClick={() => signOut()}
+                            className="rounded px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                        >
+                            Sign out
+                        </button>
+                    </>
+                ) : (
+                    <Link
+                        href="/signin"
+                        className="rounded px-3 py-1.5 text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
+                    >
+                        Sign in
+                    </Link>
+                )}
+            </div>
         </nav>
     );
 }
