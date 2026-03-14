@@ -20,7 +20,7 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export default function BuildPage() {
   const [state, setState] = useState<BuildState>(DEFAULT_STATE);
-  const [height, setHeight] = useState(60);
+  const [height, setHeight] = useState(40);
   const [showGrid, setShowGrid] = useState(true);
   const [showImages, setShowImages] = useState(true);
   const isFirstSaveRef = useRef(true);
@@ -29,11 +29,13 @@ export default function BuildPage() {
   const [planId, setPlanId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [loadingPlan, setLoadingPlan] = useState(false);
   const searchParams = useSearchParams();
 
   useEffect(() => {
     const planParam = searchParams.get("plan");
     if (planParam) {
+      setLoadingPlan(true);
       fetch(`/api/plans/${planParam}`)
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
@@ -41,7 +43,8 @@ export default function BuildPage() {
           setState({ placed: data.placed });
           setPlanId(data._id);
           setPlanName(data.name);
-        });
+        })
+        .finally(() => setLoadingPlan(false));
     } else {
       try {
         const saved = localStorage.getItem("build-state");
@@ -286,6 +289,12 @@ export default function BuildPage() {
         >
           {sidebarOpen ? "‹" : "›"}
         </button>
+        {loadingPlan && (
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-white/80 dark:bg-black/80">
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-700 dark:border-zinc-700 dark:border-t-zinc-300" />
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">Loading plan…</span>
+          </div>
+        )}
         <main className="flex-1 overflow-hidden">
           <SiteLayout
             placed={placed}

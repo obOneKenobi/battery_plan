@@ -111,7 +111,7 @@ export default function SiteLayout({ placed, onPlacedChange, onRemoveDevice, hei
                     <h2 className="text-lg font-semibold text-black dark:text-zinc-50">Site Layout</h2>
                     {placed.length > 0 && (
                         <span className="text-sm text-zinc-500 dark:text-zinc-400">
-                            Min. land: {minWidth}ft × {minDepth}ft
+                            Required Land Dimension: {minWidth}ft × {minDepth}ft
                         </span>
                     )}
                 </div>

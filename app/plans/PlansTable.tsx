@@ -48,12 +48,12 @@ export default function PlansTable({ plans }: PlansTableProps) {
                 </thead>
                 <tbody className="divide-y divide-zinc-100 bg-white dark:divide-zinc-800 dark:bg-zinc-950">
                     {plans.map((plan) => {
-                        const totalMWh = DEVICES.reduce(
-                            (sum, d) => sum + d.energyMWh * (plan.quantities[d.id] ?? 0),
+                        const totalMWh = plan.placed.reduce(
+                            (sum, p) => sum + (DEVICES.find((d) => d.id === p.deviceId)?.energyMWh ?? 0),
                             0
                         );
-                        const totalBudget = DEVICES.reduce(
-                            (sum, d) => sum + d.price * (plan.quantities[d.id] ?? 0),
+                        const totalBudget = plan.placed.reduce(
+                            (sum, p) => sum + (DEVICES.find((d) => d.id === p.deviceId)?.price ?? 0),
                             0
                         );
                         const updatedAt = new Date(plan.updatedAt).toLocaleDateString(undefined, {
