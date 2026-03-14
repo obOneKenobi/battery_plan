@@ -144,6 +144,7 @@ export default function BuildPage() {
         const data = await res.json();
         setPlanId(data.id);
       }
+      localStorage.removeItem("build-state");
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     } catch {

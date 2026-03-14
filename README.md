@@ -16,6 +16,16 @@ A tool for planning utility-scale battery storage sites. Select devices, configu
 - Save and load plans (requires sign-in with Google or GitHub)
 - Plans are auto-saved to local storage when not signed in
 
+## Quick start
+
+If you already have a `.env.local` file:
+
+```bash
+npm install && npm run dev
+```
+
+Then open [http://localhost:8000](http://localhost:8000).
+
 ## Running locally
 
 **Prerequisites:** Node.js, a MongoDB instance, and OAuth credentials for Google and/or GitHub.
