@@ -8,15 +8,6 @@ export interface PlacedDevice {
   rotated: boolean;
 }
 
-export function isOverLimit(
-  placed: PlacedDevice[],
-  p: PlacedDevice,
-  quantities: Record<DeviceId, number>
-) {
-  const index = placed.filter((item) => item.deviceId === p.deviceId).indexOf(p);
-  return index >= (quantities[p.deviceId] ?? 0);
-}
-
 export interface DragState {
   instanceId: string;
   startPointerX: number;

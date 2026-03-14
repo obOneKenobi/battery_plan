@@ -4,17 +4,15 @@ import { useState, useEffect, useRef, type SetStateAction } from "react";
 import { useSession, signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { DEVICES, type DeviceId } from "@/lib/devices";
-import { type PlacedDevice } from "@/lib/siteLayoutUtils";
+import { type PlacedDevice, findAutoPlacePosition } from "@/lib/siteLayoutUtils";
 import SiteLayout from "@/components/SiteLayout";
 import Toast from "@/components/Toast";
 
 interface BuildState {
-  quantities: Record<DeviceId, number>;
   placed: PlacedDevice[];
 }
 
 const DEFAULT_STATE: BuildState = {
-  quantities: Object.fromEntries(DEVICES.map((d) => [d.id, 0])) as Record<DeviceId, number>,
   placed: [],
 };
 
@@ -22,6 +20,8 @@ type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export default function BuildPage() {
   const [state, setState] = useState<BuildState>(DEFAULT_STATE);
+  const [height, setHeight] = useState(60);
+  const [showGrid, setShowGrid] = useState(true);
   const isFirstSaveRef = useRef(true);
   const { data: session } = useSession();
   const [planName, setPlanName] = useState("");
@@ -37,7 +37,7 @@ export default function BuildPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!data) return;
-          setState({ quantities: data.quantities, placed: data.placed });
+          setState({ placed: data.placed });
           setPlanId(data._id);
           setPlanName(data.name);
         });
@@ -58,7 +58,11 @@ export default function BuildPage() {
     localStorage.setItem("build-state", JSON.stringify(state));
   }, [state]);
 
-  const { quantities, placed } = state;
+  const { placed } = state;
+
+  const quantities = Object.fromEntries(
+    DEVICES.map((d) => [d.id, placed.filter((p) => p.deviceId === d.id).length])
+  ) as Record<DeviceId, number>;
 
   const totalBudget = DEVICES.reduce(
     (sum, device) => sum + device.price * quantities[device.id],
@@ -70,7 +74,7 @@ export default function BuildPage() {
     0
   );
 
-  const hasSelection = Object.values(quantities).some((q) => q > 0);
+  const hasSelection = placed.length > 0;
 
   const totalBatteries = (["megapackXL", "megapack2", "megapack", "powerpack"] as DeviceId[]).reduce(
     (sum, id) => sum + (quantities[id] ?? 0),
@@ -80,18 +84,37 @@ export default function BuildPage() {
   const transformerShortfall = requiredTransformers - (quantities.transformer ?? 0);
   const transformerValid = totalBatteries === 0 || transformerShortfall <= 0;
 
-  function setQuantity(id: DeviceId, value: number) {
+  function setPlaced(action: SetStateAction<PlacedDevice[]>) {
     setState((prev) => ({
-      ...prev,
-      quantities: { ...prev.quantities, [id]: Math.max(0, value) },
+      placed: typeof action === "function" ? action(prev.placed) : action,
     }));
   }
 
-  function setPlaced(action: SetStateAction<PlacedDevice[]>) {
-    setState((prev) => ({
-      ...prev,
-      placed: typeof action === "function" ? action(prev.placed) : action,
-    }));
+  function addDevice(id: DeviceId) {
+    const device = DEVICES.find((d) => d.id === id)!;
+    setState((prev) => {
+      const { x, y } = findAutoPlacePosition(prev.placed, device.width, device.depth, 100, height);
+      const instance: PlacedDevice = {
+        instanceId: `${id}-${Date.now()}`,
+        deviceId: id,
+        x,
+        y,
+        rotated: false,
+      };
+      return { placed: [...prev.placed, instance] };
+    });
+  }
+
+  function removeDevice(instanceId: string) {
+    setState((prev) => ({ placed: prev.placed.filter((p) => p.instanceId !== instanceId) }));
+  }
+
+  function removeLastOfType(id: DeviceId) {
+    setState((prev) => {
+      const lastIdx = prev.placed.map((p) => p.deviceId).lastIndexOf(id);
+      if (lastIdx === -1) return prev;
+      return { placed: prev.placed.filter((_, i) => i !== lastIdx) };
+    });
   }
 
   function clearPlan() {
@@ -107,7 +130,7 @@ export default function BuildPage() {
     }
     setSaveStatus("saving");
     try {
-      const body = { name: planName, quantities, placed };
+      const body = { name: planName, placed };
       const res = planId
         ? await fetch(`/api/plans/${planId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         : await fetch("/api/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -167,7 +190,7 @@ export default function BuildPage() {
 
                 <div className="flex items-center gap-1 pt-px">
                   <button
-                    onClick={() => setQuantity(device.id, quantities[device.id] - 1)}
+                    onClick={() => removeLastOfType(device.id)}
                     disabled={quantities[device.id] === 0}
                     className="flex h-6 w-6 items-center justify-center rounded border border-zinc-200 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 disabled:cursor-not-allowed disabled:opacity-30 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   >
@@ -177,7 +200,7 @@ export default function BuildPage() {
                     {quantities[device.id]}
                   </span>
                   <button
-                    onClick={() => setQuantity(device.id, quantities[device.id] + 1)}
+                    onClick={() => addDevice(device.id)}
                     className="flex h-6 w-6 items-center justify-center rounded border border-zinc-200 text-sm text-zinc-600 transition-colors hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-400 dark:hover:bg-zinc-800"
                   >
                     +
@@ -264,10 +287,13 @@ export default function BuildPage() {
         </button>
         <main className="flex-1 overflow-hidden">
           <SiteLayout
-            quantities={quantities}
             placed={placed}
             onPlacedChange={setPlaced}
-            onDecrementQuantity={(id) => setQuantity(id, quantities[id] - 1)}
+            onRemoveDevice={removeDevice}
+            height={height}
+            onHeightChange={setHeight}
+            showGrid={showGrid}
+            onShowGridChange={setShowGrid}
           />
         </main>
       </div>

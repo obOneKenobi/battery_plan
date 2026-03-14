@@ -8,8 +8,6 @@ import {
     getDeviceDimensions,
     collides,
     findBestPosition,
-    findAutoPlacePosition,
-    isOverLimit,
 } from "@/lib/siteLayoutUtils";
 
 const COLORS: Record<DeviceId, string> = {
@@ -21,19 +19,19 @@ const COLORS: Record<DeviceId, string> = {
 };
 
 interface SiteLayoutProps {
-    quantities: Record<DeviceId, number>;
     placed: PlacedDevice[];
     onPlacedChange: (action: SetStateAction<PlacedDevice[]>) => void;
-    onDecrementQuantity: (deviceId: DeviceId) => void;
+    onRemoveDevice: (instanceId: string) => void;
+    height: number;
+    onHeightChange: (height: number) => void;
+    showGrid: boolean;
+    onShowGridChange: (showGrid: boolean) => void;
 }
 
-export default function SiteLayout({ quantities, placed, onPlacedChange, onDecrementQuantity }: SiteLayoutProps) {
+export default function SiteLayout({ placed, onPlacedChange, onRemoveDevice, height, onHeightChange, showGrid, onShowGridChange }: SiteLayoutProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(8);
-    const [height, setHeight] = useState(60);
-    const [showGrid, setShowGrid] = useState(true);
     const dragRef = useRef<DragState | null>(null);
-    const prevQuantitiesRef = useRef<Record<DeviceId, number>>(quantities);
 
     useEffect(() => {
         const el = canvasRef.current;
@@ -44,26 +42,6 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
         ro.observe(el);
         return () => ro.disconnect();
     }, []);
-
-    useEffect(() => {
-        const prev = prevQuantitiesRef.current;
-        prevQuantitiesRef.current = quantities;
-
-        onPlacedChange((current) => {
-            let updated = current;
-            for (const deviceId of Object.keys(quantities) as DeviceId[]) {
-                if ((quantities[deviceId] ?? 0) <= (prev[deviceId] ?? 0)) continue;
-                const device = DEVICES.find((d) => d.id === deviceId)!;
-                const alreadyPlaced = updated.filter((p) => p.deviceId === deviceId).length;
-                const toAdd = (quantities[deviceId] ?? 0) - alreadyPlaced;
-                for (let i = 0; i < toAdd; i++) {
-                    const { x, y } = findAutoPlacePosition(updated, device.width, device.depth, 100, height);
-                    updated = [...updated, { instanceId: `${deviceId}-${Date.now()}-${i}`, deviceId, x, y, rotated: false }];
-                }
-            }
-            return updated;
-        });
-    }, [quantities]);
 
     function startDrag(e: React.PointerEvent, instanceId: string, currentX: number, currentY: number) {
         e.preventDefault();
@@ -117,15 +95,6 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
         );
     }
 
-    function removeDevice(instanceId: string) {
-        const p = placed.find((item) => item.instanceId === instanceId)!;
-        const placedCount = placed.filter((item) => item.deviceId === p.deviceId).length;
-        if (placedCount <= (quantities[p.deviceId] ?? 0)) {
-            onDecrementQuantity(p.deviceId);
-        }
-        onPlacedChange((prev) => prev.filter((item) => item.instanceId !== instanceId));
-    }
-
     const minWidth = placed.length
         ? Math.ceil(Math.max(...placed.map((p) => { const { w } = getDeviceDimensions(p); return p.x + w; })))
         : 0;
@@ -146,7 +115,7 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
                 </div>
                 <div className="flex items-center gap-3">
                     <button
-                        onClick={() => setShowGrid((v) => !v)}
+                        onClick={() => onShowGridChange(!showGrid)}
                         className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
                             showGrid
                                 ? "border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
@@ -161,7 +130,7 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
                         min={20}
                         max={300}
                         value={height}
-                        onChange={(e) => setHeight(Number(e.target.value))}
+                        onChange={(e) => onHeightChange(Number(e.target.value))}
                         className="w-32 accent-zinc-700 dark:accent-zinc-300"
                     />
                 </div>
@@ -192,7 +161,6 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
                     {placed.map((p) => {
                         const { w, h } = getDeviceDimensions(p);
                         const device = DEVICES.find((d) => d.id === p.deviceId)!;
-                        const overLimit = isOverLimit(placed, p, quantities);
                         const outOfBounds = p.x + w > 100 || p.y + h > height || p.x < 0 || p.y < 0;
                         const hasCollision = collides(placed, p.x, p.y, w, h, p.instanceId);
                         return (
@@ -205,8 +173,6 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
                                     width: w * scale,
                                     height: h * scale,
                                     backgroundColor: COLORS[p.deviceId],
-                                    opacity: overLimit ? 0.35 : 1,
-                                    filter: overLimit ? "grayscale(1)" : "none",
                                     outline: outOfBounds || hasCollision ? "2px solid #ef4444" : "none",
                                 }}
                                 onPointerDown={(e) => startDrag(e, p.instanceId, p.x, p.y)}
@@ -224,7 +190,7 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
                                 <button
                                     className="absolute right-0.5 top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-black/25 text-[11px] hover:bg-black/50 group-hover:flex"
                                     onPointerDown={(e) => e.stopPropagation()}
-                                    onClick={() => removeDevice(p.instanceId)}
+                                    onClick={() => onRemoveDevice(p.instanceId)}
                                 >
                                     ×
                                 </button>

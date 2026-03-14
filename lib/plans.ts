@@ -5,17 +5,20 @@ import type { PlacedDevice } from "@/lib/siteLayoutUtils";
 
 const BATTERY_IDS: DeviceId[] = ["megapackXL", "megapack2", "megapack", "powerpack"];
 
-export function validateTransformerRatio(quantities: Record<DeviceId, number>) {
-    const totalBatteries = BATTERY_IDS.reduce((sum, id) => sum + (quantities[id] ?? 0), 0);
+export function validateTransformerRatio(placed: PlacedDevice[]) {
+    const totalBatteries = BATTERY_IDS.reduce(
+        (sum, id) => sum + placed.filter((p) => p.deviceId === id).length,
+        0
+    );
     const required = Math.ceil(totalBatteries / 2);
-    return totalBatteries === 0 || (quantities.transformer ?? 0) >= required;
+    const transformers = placed.filter((p) => p.deviceId === "transformer").length;
+    return totalBatteries === 0 || transformers >= required;
 }
 
 export interface Plan {
     _id?: ObjectId;
     userId: string;
     name: string;
-    quantities: Record<DeviceId, number>;
     placed: PlacedDevice[];
     createdAt: Date;
     updatedAt: Date;
@@ -31,29 +34,18 @@ export async function getUserPlans(userId: string) {
     return col.find({ userId }).sort({ updatedAt: -1 }).toArray();
 }
 
-export async function createPlan(
-    userId: string,
-    name: string,
-    quantities: Record<DeviceId, number>,
-    placed: PlacedDevice[]
-) {
+export async function createPlan(userId: string, name: string, placed: PlacedDevice[]) {
     const col = await getCollection();
     const now = new Date();
-    const result = await col.insertOne({ userId, name, quantities, placed, createdAt: now, updatedAt: now });
+    const result = await col.insertOne({ userId, name, placed, createdAt: now, updatedAt: now });
     return result.insertedId.toString();
 }
 
-export async function updatePlan(
-    id: string,
-    userId: string,
-    name: string,
-    quantities: Record<DeviceId, number>,
-    placed: PlacedDevice[]
-) {
+export async function updatePlan(id: string, userId: string, name: string, placed: PlacedDevice[]) {
     const col = await getCollection();
     await col.updateOne(
         { _id: new ObjectId(id), userId },
-        { $set: { name, quantities, placed, updatedAt: new Date() } }
+        { $set: { name, placed, updatedAt: new Date() } }
     );
 }
 

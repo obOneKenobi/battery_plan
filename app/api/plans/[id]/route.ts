@@ -16,10 +16,10 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await params;
-    const { name, quantities, placed } = await req.json();
-    if (!validateTransformerRatio(quantities))
+    const { name, placed } = await req.json();
+    if (!validateTransformerRatio(placed))
         return Response.json({ error: "Insufficient transformers for battery count" }, { status: 422 });
-    await updatePlan(id, session.user.id, name, quantities, placed);
+    await updatePlan(id, session.user.id, name, placed);
     return Response.json({ ok: true });
 }
 
