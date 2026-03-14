@@ -26,9 +26,11 @@ interface SiteLayoutProps {
     onHeightChange: (height: number) => void;
     showGrid: boolean;
     onShowGridChange: (showGrid: boolean) => void;
+    showImages: boolean;
+    onShowImagesChange: (showImages: boolean) => void;
 }
 
-export default function SiteLayout({ placed, onPlacedChange, onRemoveDevice, height, onHeightChange, showGrid, onShowGridChange }: SiteLayoutProps) {
+export default function SiteLayout({ placed, onPlacedChange, onRemoveDevice, height, onHeightChange, showGrid, onShowGridChange, showImages, onShowImagesChange }: SiteLayoutProps) {
     const canvasRef = useRef<HTMLDivElement>(null);
     const [scale, setScale] = useState(8);
     const dragRef = useRef<DragState | null>(null);
@@ -124,6 +126,16 @@ export default function SiteLayout({ placed, onPlacedChange, onRemoveDevice, hei
                     >
                         Grid
                     </button>
+                    <button
+                        onClick={() => onShowImagesChange(!showImages)}
+                        className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+                            showImages
+                                ? "border-zinc-300 bg-zinc-100 text-zinc-700 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
+                                : "border-zinc-200 text-zinc-400 hover:border-zinc-300 hover:text-zinc-600 dark:border-zinc-800 dark:text-zinc-600 dark:hover:text-zinc-400"
+                        }`}
+                    >
+                        Images
+                    </button>
                     <span className="text-sm text-zinc-500 dark:text-zinc-400">Height: {height}ft</span>
                     <input
                         type="range"
@@ -172,14 +184,23 @@ export default function SiteLayout({ placed, onPlacedChange, onRemoveDevice, hei
                                     top: p.y * scale,
                                     width: w * scale,
                                     height: h * scale,
-                                    backgroundColor: COLORS[p.deviceId],
+                                    backgroundColor: showImages ? "transparent" : COLORS[p.deviceId],
                                     outline: outOfBounds || hasCollision ? "2px solid #ef4444" : "none",
                                 }}
                                 onPointerDown={(e) => startDrag(e, p.instanceId, p.x, p.y)}
                                 onPointerMove={(e) => moveDrag(e, p.instanceId)}
                                 onPointerUp={(e) => endDrag(e, p.instanceId)}
                             >
-                                <span className="truncate px-1 text-xs font-medium">{device.name}</span>
+                                {showImages && (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img
+                                        src={`/devices/${p.deviceId}.png`}
+                                        alt={device.name}
+                                        className="pointer-events-none absolute inset-0 h-full w-full object-fill"
+                                        draggable={false}
+                                    />
+                                )}
+                                <span className={showImages ? "absolute top-1 left-0 right-0 truncate px-1 text-xs font-medium text-black drop-shadow" : "truncate px-1 text-xs font-medium text-white"}>{device.name}</span>
                                 <button
                                     className="absolute left-0.5 top-0.5 hidden h-4 w-4 items-center justify-center rounded-full bg-black/25 text-[11px] hover:bg-black/50 group-hover:flex"
                                     onPointerDown={(e) => e.stopPropagation()}

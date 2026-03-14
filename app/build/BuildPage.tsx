@@ -22,6 +22,7 @@ export default function BuildPage() {
   const [state, setState] = useState<BuildState>(DEFAULT_STATE);
   const [height, setHeight] = useState(60);
   const [showGrid, setShowGrid] = useState(true);
+  const [showImages, setShowImages] = useState(true);
   const isFirstSaveRef = useRef(true);
   const { data: session } = useSession();
   const [planName, setPlanName] = useState("");
@@ -294,6 +295,8 @@ export default function BuildPage() {
             onHeightChange={setHeight}
             showGrid={showGrid}
             onShowGridChange={setShowGrid}
+            showImages={showImages}
+            onShowImagesChange={setShowImages}
           />
         </main>
       </div>
