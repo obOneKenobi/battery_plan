@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
+import Logo from "@/components/Logo";
 
 const PUBLIC_LINKS = [
     { href: "/", label: "Home" },
@@ -21,8 +22,9 @@ export default function Navbar() {
         <nav className="flex h-12 items-center gap-1 border-b border-zinc-200 bg-white px-4 dark:border-zinc-800 dark:bg-zinc-950">
             <Link
                 href="/"
-                className="mr-3 text-sm font-semibold tracking-tight text-black dark:text-zinc-50"
+                className="mr-3 flex items-center gap-2 text-sm font-semibold tracking-tight text-black dark:text-zinc-50"
             >
+                <Logo size={18} />
                 Battery Plan
             </Link>
             {[...PUBLIC_LINKS, ...(session ? AUTH_LINKS : [])].map(({ href, label }) => (
