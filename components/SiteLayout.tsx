@@ -8,6 +8,7 @@ import {
     getDeviceDimensions,
     collides,
     findBestPosition,
+    findAutoPlacePosition,
     isOverLimit,
 } from "@/lib/siteLayoutUtils";
 
@@ -56,7 +57,7 @@ export default function SiteLayout({ quantities, placed, onPlacedChange, onDecre
                 const alreadyPlaced = updated.filter((p) => p.deviceId === deviceId).length;
                 const toAdd = (quantities[deviceId] ?? 0) - alreadyPlaced;
                 for (let i = 0; i < toAdd; i++) {
-                    const { x, y } = findBestPosition(updated, 0, 0, device.width, device.depth, 100, height);
+                    const { x, y } = findAutoPlacePosition(updated, device.width, device.depth, 100, height);
                     updated = [...updated, { instanceId: `${deviceId}-${Date.now()}-${i}`, deviceId, x, y, rotated: false }];
                 }
             }

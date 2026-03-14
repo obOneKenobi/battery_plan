@@ -48,6 +48,21 @@ export function collides(
   });
 }
 
+export function findAutoPlacePosition(
+  placed: PlacedDevice[],
+  w: number,
+  h: number,
+  canvasWidth: number,
+  canvasHeight: number
+): { x: number; y: number } {
+  for (let x = 0; x + w <= canvasWidth; x++) {
+    for (let y = 0; y + h <= canvasHeight; y++) {
+      if (!collides(placed, x, y, w, h)) return { x, y };
+    }
+  }
+  return { x: 0, y: 0 };
+}
+
 export function findBestPosition(
   placed: PlacedDevice[],
   targetX: number,
