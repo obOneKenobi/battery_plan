@@ -47,3 +47,12 @@ npm run dev
 ```
 
 4. Open [http://localhost:8000](http://localhost:8000) in your browser.
+
+## Testing
+
+```bash
+npm test          # watch mode — reruns on file changes
+npm run test:run  # single run
+```
+
+Tests are written with [Vitest](https://vitest.dev/) and [React Testing Library](https://testing-library.com/).
