@@ -10,17 +10,20 @@ import Toast from "@/components/Toast";
 
 interface BuildState {
   placed: PlacedDevice[];
+  height: number;
 }
 
 const DEFAULT_STATE: BuildState = {
   placed: [],
+  height: 40,
 };
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 export default function BuildPage() {
   const [state, setState] = useState<BuildState>(DEFAULT_STATE);
-  const [height, setHeight] = useState(40);
+  const height = state.height;
+  function setHeight(h: number) { setState((prev) => ({ ...prev, height: h })); }
   const [showGrid, setShowGrid] = useState(true);
   const [showImages, setShowImages] = useState(true);
   const isFirstSaveRef = useRef(true);
@@ -40,7 +43,7 @@ export default function BuildPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((data) => {
           if (!data) return;
-          setState({ placed: data.placed });
+          setState({ placed: data.placed, height: data.height ?? DEFAULT_STATE.height });
           setPlanId(data._id);
           setPlanName(data.name);
         })
@@ -48,7 +51,10 @@ export default function BuildPage() {
     } else {
       try {
         const saved = localStorage.getItem("build-state");
-        if (saved) setState(JSON.parse(saved));
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setState({ ...DEFAULT_STATE, ...parsed, height: parsed.height ?? DEFAULT_STATE.height });
+        }
       } catch {}
     }
   }, []);
@@ -90,6 +96,7 @@ export default function BuildPage() {
 
   function setPlaced(action: SetStateAction<PlacedDevice[]>) {
     setState((prev) => ({
+      ...prev,
       placed: typeof action === "function" ? action(prev.placed) : action,
     }));
   }
@@ -105,19 +112,19 @@ export default function BuildPage() {
         y,
         rotated: false,
       };
-      return { placed: [...prev.placed, instance] };
+      return { ...prev, placed: [...prev.placed, instance] };
     });
   }
 
   function removeDevice(instanceId: string) {
-    setState((prev) => ({ placed: prev.placed.filter((p) => p.instanceId !== instanceId) }));
+    setState((prev) => ({ ...prev, placed: prev.placed.filter((p) => p.instanceId !== instanceId) }));
   }
 
   function removeLastOfType(id: DeviceId) {
     setState((prev) => {
       const lastIdx = prev.placed.map((p) => p.deviceId).lastIndexOf(id);
       if (lastIdx === -1) return prev;
-      return { placed: prev.placed.filter((_, i) => i !== lastIdx) };
+      return { ...prev, placed: prev.placed.filter((_, i) => i !== lastIdx) };
     });
   }
 
@@ -134,7 +141,7 @@ export default function BuildPage() {
     }
     setSaveStatus("saving");
     try {
-      const body = { name: planName, placed };
+      const body = { name: planName, placed, height };
       const res = planId
         ? await fetch(`/api/plans/${planId}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
         : await fetch("/api/plans", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });

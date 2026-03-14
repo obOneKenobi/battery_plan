@@ -20,6 +20,7 @@ export interface Plan {
     userId: string;
     name: string;
     placed: PlacedDevice[];
+    height: number;
     createdAt: Date;
     updatedAt: Date;
 }
@@ -34,18 +35,18 @@ export async function getUserPlans(userId: string) {
     return col.find({ userId }).sort({ updatedAt: -1 }).toArray();
 }
 
-export async function createPlan(userId: string, name: string, placed: PlacedDevice[]) {
+export async function createPlan(userId: string, name: string, placed: PlacedDevice[], height: number) {
     const col = await getCollection();
     const now = new Date();
-    const result = await col.insertOne({ userId, name, placed, createdAt: now, updatedAt: now });
+    const result = await col.insertOne({ userId, name, placed, height, createdAt: now, updatedAt: now });
     return result.insertedId.toString();
 }
 
-export async function updatePlan(id: string, userId: string, name: string, placed: PlacedDevice[]) {
+export async function updatePlan(id: string, userId: string, name: string, placed: PlacedDevice[], height: number) {
     const col = await getCollection();
     await col.updateOne(
         { _id: new ObjectId(id), userId },
-        { $set: { name, placed, updatedAt: new Date() } }
+        { $set: { name, placed, height, updatedAt: new Date() } }
     );
 }
 

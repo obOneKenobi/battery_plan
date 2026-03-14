@@ -13,9 +13,9 @@ export async function POST(req: Request) {
     const session = await auth();
     if (!session?.user?.id) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { name, placed } = await req.json();
+    const { name, placed, height } = await req.json();
     if (!validateTransformerRatio(placed))
         return Response.json({ error: "Insufficient transformers for battery count" }, { status: 422 });
-    const id = await createPlan(session.user.id, name, placed);
+    const id = await createPlan(session.user.id, name, placed, height ?? 40);
     return Response.json({ id }, { status: 201 });
 }
